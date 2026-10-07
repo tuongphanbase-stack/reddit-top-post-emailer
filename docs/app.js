@@ -1,0 +1,1 @@
+async function load(){let data={};try{data=await (await fetch('latest.json',{cache:'no-store'})).json()}catch(e){};document.querySelector('#updated').textContent=data.updated_at||'recovered placeholder';document.querySelector('#items').textContent=data.item_count??'—';document.querySelector('#state').textContent=data.status||'reconstructed';}load();
