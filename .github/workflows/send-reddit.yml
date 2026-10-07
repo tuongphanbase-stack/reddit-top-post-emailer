@@ -1,0 +1,69 @@
+name: Send Reddit Top Posts
+
+on:
+  schedule:
+    # 01:00 UTC every day = 8:00 AM in Vietnam (UTC+7). Cron is always UTC.
+    - cron: "0 1 * * *"
+  workflow_dispatch: {}   # lets you trigger it manually from the Actions tab to test
+
+permissions:
+  contents: write   # commit the sent-post history and docs/latest.json
+
+concurrency:
+  group: send-reddit
+  cancel-in-progress: false
+
+jobs:
+  send-reddit:
+    runs-on: ubuntu-latest
+    env:
+      # Without the Gmail secrets, the Send step is skipped (with a warning)
+      # instead of failing the run every time.
+      HAS_GMAIL: ${{ secrets.GMAIL_ADDRESS != '' && secrets.GMAIL_APP_PASSWORD != '' }}
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Generate email
+        env:
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+          # Optional settings: add them as repository Variables to override.
+          SUBREDDITS: ${{ vars.SUBREDDITS }}
+          TOP_N: ${{ vars.TOP_N }}
+          TIME_FILTER: ${{ vars.TIME_FILTER }}
+          TIMEZONE: "Asia/Ho_Chi_Minh"
+        run: python reddit_top_post_emailer.py generate
+
+      - name: Warn that the Gmail secrets are missing
+        if: env.HAS_GMAIL != 'true'
+        run: echo "::warning::GMAIL_ADDRESS / GMAIL_APP_PASSWORD secrets are not set, so no email was sent. Add them in Settings -> Secrets and variables -> Actions."
+
+      - name: Send email
+        if: env.HAS_GMAIL == 'true'
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          REDDIT_RECIPIENT: ${{ secrets.REDDIT_RECIPIENT }}
+        run: python reddit_top_post_emailer.py send
+
+      - name: Save sent-post history and dashboard status
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          for f in state/sent_ids.json docs/latest.json; do
+            [ -f "$f" ] && git add "$f"
+          done
+          if ! git diff --cached --quiet; then
+            git commit -q -m "Update sent post history [skip ci]"
+            git pull -q --rebase origin "$GITHUB_REF_NAME"
+            git push -q origin "HEAD:$GITHUB_REF_NAME"
+          fi
