@@ -67,7 +67,7 @@ STATE_DIR = "state"
 STATE_FILE = os.path.join(STATE_DIR, "sent_ids.json")
 LATEST_FILE = os.path.join("docs", "latest.json")  # read by the docs/ dashboard
 
-SENT_RETENTION_HOURS = float(os.environ.get("SENT_RETENTION_HOURS", "48"))
+SENT_RETENTION_HOURS = float(os.environ.get("SENT_RETENTION_HOURS") or "48")
 
 
 def get_oauth_token(client_id, client_secret):
