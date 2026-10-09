@@ -12,6 +12,7 @@ jobs:
   # GitHub Pages is not turned on: Settings -> Pages -> Source: GitHub Actions.
   check-pages:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       enabled: ${{ steps.pages.outputs.enabled }}
     steps:
@@ -33,6 +34,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: actions/configure-pages@v6

@@ -16,6 +16,7 @@ concurrency:
 jobs:
   send-reddit:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
       # Without the Gmail secrets, the Send step is skipped (with a warning)
       # instead of failing the run every time.
