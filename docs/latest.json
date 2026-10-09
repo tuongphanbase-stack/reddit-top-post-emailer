@@ -1,6 +1,6 @@
 {
   "repo": "reddit-top-post-emailer",
-  "status": "reconstructed",
-  "item_count": null,
-  "updated_at": null
+  "status": "blocked by Reddit - API credentials needed",
+  "item_count": 0,
+  "updated_at": "2026-10-09T07:27:54+00:00"
 }
