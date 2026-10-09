@@ -8,7 +8,27 @@ permissions:
   pages: write
   id-token: write
 jobs:
+  # Skip the deploy (instead of failing and emailing a failure notice) while
+  # GitHub Pages is not turned on: Settings -> Pages -> Source: GitHub Actions.
+  check-pages:
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.pages.outputs.enabled }}
+    steps:
+      - id: pages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh api "repos/${{ github.repository }}/pages" --silent 2>/dev/null; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::GitHub Pages is not turned on for this repository, so the site was not deployed. Turn it on in Settings -> Pages -> Source: GitHub Actions."
+          fi
+
   deploy:
+    needs: check-pages
+    if: needs.check-pages.outputs.enabled == 'true'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

@@ -258,7 +258,21 @@ def cmd_generate():
     print(f"Skipping {len(sent_ids)} post(s) sent in the last {SENT_RETENTION_HOURS:g}h.")
 
     print(f"Fetching top posts from r/{subreddits} (t={time_filter})...")
-    posts = select_posts(fetch_top_posts(subreddits, time_filter), sent_ids, top_n)
+    try:
+        raw_posts = fetch_top_posts(subreddits, time_filter)
+    except RuntimeError as e:
+        # Without API credentials Reddit blocks GitHub's servers almost every
+        # day. Skip instead of failing the run (and emailing a failure
+        # notice); with credentials set, a failure is real and still raises.
+        if os.environ.get("REDDIT_CLIENT_ID") and os.environ.get("REDDIT_CLIENT_SECRET"):
+            raise
+        print(f"::warning::Reddit blocked the anonymous API, so no email was sent. "
+              f"Add the REDDIT_CLIENT_ID and REDDIT_CLIENT_SECRET secrets to fix this. ({e})")
+        with open(os.path.join(EMAIL_DIR, "meta.json"), "w") as f:
+            json.dump({"total": 0, "ids": []}, f)
+        write_latest(0, "blocked by Reddit - API credentials needed")
+        return
+    posts = select_posts(raw_posts, sent_ids, top_n)
 
     if not posts:
         print("No new qualifying posts.")
