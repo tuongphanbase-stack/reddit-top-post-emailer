@@ -2,6 +2,11 @@ name: Deploy Pages
 on:
   push:
     branches: [main]
+  # The bot commits docs/latest.json with [skip ci], which does not start
+  # the push trigger, so redeploy after each run to show the new status.
+  workflow_run:
+    workflows: ["Send Reddit Top Posts"]
+    types: [completed]
   workflow_dispatch:
 permissions:
   contents: read
